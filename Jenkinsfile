@@ -6,6 +6,7 @@ pipeline {
         DOCKER_TAG = "v1.0"
         DOCKER_CREDENTIALS = "dockerhub"
         SONARQUBE_CREDENTIALS = "jenkins-sonar"
+        PATH = "/opt/sonar-scanner/bin:$PATH" // SonarQube Scanner yolu burada ekleniyor
     }
 
     stages {
