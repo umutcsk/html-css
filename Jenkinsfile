@@ -1,8 +1,5 @@
 pipeline {
     agent any
-    parameters {
-        gitParameter branchFilter: 'origin/(.*)', defaultValue: 'main', name: 'BRANCH', type: 'PT_BRANCH'
-    }
 
     environment {
         DOCKER_IMAGE = "umutcskn681/html-web-app"
@@ -12,30 +9,35 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Run SonarQube Analysis') {
             steps {
-                git branch: "${params.BRANCH}", url: 'https://github.com/jenkinsci/git-parameter-plugin.git'
+                environment {
+                    scannerHome = tool 'jenkins-sonar'
+                }
+                script {
+                    echo "Running SonarQube analysis..."
+                    withSonarQubeEnv(credentialsId: 'jenkins-sonar', installationName: 'jenkins-sonar') {
+                        sh """
+                            echo "Starting SonarQube Scanner"
+                            ${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=umut -Dsonar.projectName=umut -Dsonar.sources=.
+                        """
+                    }
+                }
             }
         }
 
-        stage('Run SonarQube Analysis') {
-            when {
-                branch "${params.BRANCH}"
-            }
-            environment {
-                scannerHome = tool 'jenkins-sonar'
-            }
+        stage('Wait for SonarQube Analysis') {
             steps {
-                withSonarQubeEnv(credentialsId: 'jenkins-sonar', installationName: 'jenkins-sonar') {
-                    sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=umut -Dsonar.projectName=umut"
+                script {
+                    echo "Waiting for SonarQube analysis results..."
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitForQualityGate abortPipeline: true
+                    }
                 }
             }
         }
 
         stage('Pull Docker Image') {
-            when {
-                branch "${params.BRANCH}"
-            }
             steps {
                 script {
                     echo "Pulling Docker image from Docker Hub..."
@@ -45,9 +47,6 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            when {
-                branch "${params.BRANCH}"
-            }
             steps {
                 script {
                     echo "Building new Docker image..."
@@ -57,9 +56,6 @@ pipeline {
         }
 
         stage('Push Docker Image') {
-            when {
-                branch "${params.BRANCH}"
-            }
             steps {
                 script {
                     echo "Pushing Docker image to Docker Hub..."
@@ -72,9 +68,6 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            when {
-                branch "${params.BRANCH}"
-            }
             steps {
                 script {
                     echo "Applying Kubernetes deployment and service..."
@@ -82,6 +75,18 @@ pipeline {
                     sh "kubectl apply -f service.yaml"
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished.'
+        }
+        success {
+            echo 'Pipeline succeeded.'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
