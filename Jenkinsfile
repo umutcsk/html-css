@@ -11,15 +11,13 @@ pipeline {
     stages {
         stage('Run SonarQube Analysis') {
             steps {
-                environment {
-                    scannerHome = tool 'jenkins-sonar'
-                }
                 script {
+                    // SonarQube analizini başlat
                     echo "Running SonarQube analysis..."
                     withSonarQubeEnv(credentialsId: 'jenkins-sonar', installationName: 'jenkins-sonar') {
                         sh """
                             echo "Starting SonarQube Scanner"
-                            ${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=umut -Dsonar.projectName=umut -Dsonar.sources=.
+                            sonar-scanner -Dsonar.projectKey=umut -Dsonar.projectName=umut -Dsonar.sources=.
                         """
                     }
                 }
@@ -29,6 +27,7 @@ pipeline {
         stage('Wait for SonarQube Analysis') {
             steps {
                 script {
+                    // SonarQube analizinin tamamlanmasını bekle
                     echo "Waiting for SonarQube analysis results..."
                     timeout(time: 1, unit: 'HOURS') {
                         waitForQualityGate abortPipeline: true
