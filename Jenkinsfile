@@ -17,7 +17,7 @@ pipeline {
                     withSonarQubeEnv(credentialsId: 'jenkins-sonar', installationName: 'jenkins-sonar') {
                         sh """
                             echo "Starting SonarQube Scanner"
-                            sonar-scanner -Dsonar.projectKey=umut -Dsonar.projectName=umut -Dsonar.sources=.
+                            sonar-scanner -Dsonar.projectKey=umut2 -Dsonar.projectName=umut2 -Dsonar.sources=.
                         """
                     }
                 }
